@@ -35,6 +35,7 @@ import edu.eci.dosw.oficioya.search.dto.OficioOfrecidoDTO;
 import edu.eci.dosw.oficioya.search.dto.ReputacionDTO;
 import edu.eci.dosw.oficioya.search.dto.ResultadoBusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
+import edu.eci.dosw.oficioya.search.exception.IntegracionException;
 import edu.eci.dosw.oficioya.search.exception.SolicitudInvalidaException;
 
 class BusquedaServiceTest {
@@ -138,6 +139,53 @@ class BusquedaServiceTest {
         assertThat(respuesta.oficioIdentificado()).isEqualTo("Plomería");
         // máximo 2 sugerencias, las de mayor reputación
         assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::trabajadorId).containsExactly(id(2), id(1));
+    }
+
+    @Test
+    void siElTextoEsElNombreDeUnTrabajadorLoMuestraSinConsultarLaIA() {
+        TrabajadorDTO yazid = new TrabajadorDTO(id(7), "Yazid Sánchez", null, PLOMERIA, "Plomero", List.of(),
+                List.of(10L), null, new BigDecimal("80000"), true, List.of(), 0);
+        TrabajadorDTO otro = new TrabajadorDTO(id(8), "Samuel Lozano", null, PLOMERIA, "Plomero", List.of(),
+                List.of(10L), null, new BigDecimal("60000"), true, List.of(), 0);
+        when(orquestador.listarTrabajadoresActivos()).thenReturn(List.of(yazid, otro));
+
+        BusquedaResponse respuesta = servicio.buscarPorLenguajeNatural("u1", "yazid SANCH",
+                CriteriosBusqueda.soloOficio(null));
+
+        assertThat(respuesta.tipo()).isEqualTo(TipoBusqueda.NOMBRE);
+        assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::nombreCompleto)
+                .containsExactly("Yazid Sánchez");
+        verify(interpretador, never()).interpretar(anyString(), any());
+    }
+
+    @Test
+    void siNingunNombreCoincideSeUsaLaIA() {
+        when(orquestador.listarTrabajadoresActivos()).thenReturn(List.of(new TrabajadorDTO(id(7), "Yazid Sánchez",
+                null, PLOMERIA, "Plomero", List.of(), List.of(), null, BigDecimal.ONE, true, List.of(), 0)));
+        when(interpretador.interpretar(anyString(), any()))
+                .thenReturn(InterpretacionIA.identificado(PLOMERIA, "Plomería", 0.9));
+
+        BusquedaResponse respuesta = servicio.buscarPorLenguajeNatural("u1", "necesito un plomero",
+                CriteriosBusqueda.soloOficio(null));
+
+        assertThat(respuesta.tipo()).isEqualTo(TipoBusqueda.LENGUAJE_NATURAL);
+    }
+
+    @Test
+    void siWorkerFallaAlBuscarPorNombreSeUsaLaIA() {
+        when(orquestador.listarTrabajadoresActivos()).thenThrow(new IntegracionException("caído", null));
+        when(interpretador.interpretar(anyString(), any())).thenReturn(InterpretacionIA.requiereMasDetalle());
+
+        BusquedaResponse respuesta = servicio.buscarPorLenguajeNatural("u1", "hola", CriteriosBusqueda.soloOficio(null));
+
+        assertThat(respuesta.estado()).isEqualTo(EstadoInterpretacion.REQUIERE_MAS_DETALLE);
+    }
+
+    @Test
+    void lasPalabrasSeComparanSinTildesNiMayusculas() {
+        assertThat(BusquedaService.palabras("  José  MARÍA-Núñez ")).containsExactly("jose", "maria", "nunez");
+        assertThat(BusquedaService.coincide(List.of("jose", "nunez"), List.of("nu"))).isTrue();
+        assertThat(BusquedaService.coincide(List.of("jose", "nunez"), List.of("jose", "perez"))).isFalse();
     }
 
     @Test

@@ -120,6 +120,22 @@ class OrquestadorRestClientTest {
     }
 
     @Test
+    void listaTodosLosTrabajadoresActivosSinFiltrarPorOficio() {
+        servidor.expect(requestTo(BASE + "/api/v1/workers"))
+                .andRespond(withSuccess("""
+                        [{"id": "%s", "userId": "%s", "status": "ACTIVE", "availableNow": true}]
+                        """.formatted(id(101), id(201)), MediaType.APPLICATION_JSON));
+        servidor.expect(requestTo(BASE + "/api/v1/users?ids=" + id(201)))
+                .andRespond(withSuccess("""
+                        [{"id": "%s", "name": "Yazid Sánchez"}]
+                        """.formatted(id(201)), MediaType.APPLICATION_JSON));
+
+        assertThat(cliente.listarTrabajadoresActivos()).singleElement()
+                .satisfies(trabajador -> assertThat(trabajador.nombreCompleto()).isEqualTo("Yazid Sánchez"));
+        servidor.verify();
+    }
+
+    @Test
     void sinTrabajadoresNoConsultaUsers() {
         servidor.expect(requestTo(BASE + "/api/v1/workers?tradeId=" + id(1)))
                 .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));

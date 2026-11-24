@@ -103,6 +103,11 @@ public class OrquestadorClientSimulado implements OrquestadorClient {
     }
 
     @Override
+    public List<TrabajadorDTO> listarTrabajadoresActivos() {
+        return TRABAJADORES;
+    }
+
+    @Override
     public List<OficioDTO> obtenerOficios() {
         return OFICIOS;
     }

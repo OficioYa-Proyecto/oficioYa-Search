@@ -2,8 +2,11 @@ package edu.eci.dosw.oficioya.search.service;
 
 import java.util.UUID;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,6 +31,7 @@ import edu.eci.dosw.oficioya.search.dto.OficioOfrecidoDTO;
 import edu.eci.dosw.oficioya.search.dto.ReputacionDTO;
 import edu.eci.dosw.oficioya.search.dto.ResultadoBusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
+import edu.eci.dosw.oficioya.search.exception.IntegracionException;
 import edu.eci.dosw.oficioya.search.exception.SolicitudInvalidaException;
 
 /**
@@ -72,12 +76,21 @@ public class BusquedaService {
     }
 
     /**
-     * Búsqueda en lenguaje natural (RF-1, RF-2): la IA identifica el oficio y se sugieren los trabajadores
+     * Búsqueda en lenguaje natural (RF-1, RF-2). Primero se revisa si el texto es el nombre de un trabajador;
+     * si no lo es, la IA identifica el oficio y se sugieren los trabajadores
      * con mayor reputación en ese oficio. Si no se identifica el oficio, se pide más detalle.
      */
     public BusquedaResponse buscarPorLenguajeNatural(String usuario, String texto, CriteriosBusqueda criterios) {
         long inicio = System.currentTimeMillis();
         String descripcion = sanear(texto);
+        // Si el texto es el nombre de uno o más trabajadores, se muestran ellos y no se consulta la IA.
+        List<TrabajadorDTO> porNombre = trabajadoresConNombre(descripcion);
+        if (!porNombre.isEmpty()) {
+            List<ResultadoBusqueda> resultados = enOrden(aResultados(porNombre, null, criterios), criterios.orden());
+            registrarLog(usuario, TipoBusqueda.NOMBRE, null, resultados.size(), inicio);
+            return new BusquedaResponse(TipoBusqueda.NOMBRE, null, null, null, resultados.size(),
+                    aRespuesta(resultados));
+        }
         InterpretacionIA interpretacion = interpretador.interpretar(descripcion, orquestadorClient.obtenerOficios());
         if (!interpretacion.esConfiable(umbralConfianza)) {
             registrarLog(usuario, TipoBusqueda.LENGUAJE_NATURAL, null, 0, inicio);
@@ -100,14 +113,54 @@ public class BusquedaService {
         List<TrabajadorDTO> trabajadores = orquestadorClient.buscarTrabajadoresActivos(criterios.oficioId()).stream()
                 .filter(t -> t.ofrece(criterios.oficioId()))
                 .toList();
+        return aResultados(trabajadores, criterios.oficioId(), criterios);
+    }
+
+    /**
+     * Agrega la reputación, aplica los filtros y ordena por reputación.
+     */
+    private List<ResultadoBusqueda> aResultados(List<TrabajadorDTO> trabajadores, UUID oficioBuscado,
+                                                CriteriosBusqueda criterios) {
         Map<UUID, ReputacionDTO> reputaciones = orquestadorClient.obtenerReputaciones(
                 trabajadores.stream().map(TrabajadorDTO::id).toList());
         FiltroBusqueda filtro = criterios.construirFiltro();
         List<ResultadoBusqueda> filtrados = trabajadores.stream()
-                .map(t -> aResultado(t, criterios.oficioId(), reputaciones.get(t.id())))
+                .map(t -> aResultado(t, oficioBuscado, reputaciones.get(t.id())))
                 .filter(filtro::cumple)
                 .toList();
         return ordenamiento.ordenar(filtrados);
+    }
+
+    /**
+     * Trabajadores activos cuyo nombre contiene todas las palabras del texto (sin importar tildes ni mayúsculas;
+     * cada palabra puede ser el inicio de una del nombre: "yazid sanch" encuentra a "Yazid Sánchez").
+     * Si Worker no responde, se sigue con la búsqueda por oficio.
+     */
+    private List<TrabajadorDTO> trabajadoresConNombre(String texto) {
+        List<String> buscadas = palabras(texto);
+        if (buscadas.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return orquestadorClient.listarTrabajadoresActivos().stream()
+                    .filter(t -> t.nombreCompleto() != null && coincide(palabras(t.nombreCompleto()), buscadas))
+                    .toList();
+        } catch (IntegracionException e) {
+            log.warn("No fue posible buscar por nombre; se sigue con la interpretación del oficio", e);
+            return List.of();
+        }
+    }
+
+    /** Palabras en minúscula y sin tildes. */
+    static List<String> palabras(String texto) {
+        String sinTildes = Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return Arrays.stream(sinTildes.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
+                .filter(palabra -> !palabra.isBlank())
+                .toList();
+    }
+
+    static boolean coincide(List<String> delNombre, List<String> buscadas) {
+        return buscadas.stream().allMatch(buscada -> delNombre.stream().anyMatch(n -> n.startsWith(buscada)));
     }
 
     private static List<ResultadoBusqueda> enOrden(List<ResultadoBusqueda> resultados, OrdenCalificacion orden) {

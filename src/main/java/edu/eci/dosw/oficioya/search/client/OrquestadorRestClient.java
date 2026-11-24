@@ -69,10 +69,24 @@ public class OrquestadorRestClient implements OrquestadorClient {
 
     @Override
     public List<TrabajadorDTO> buscarTrabajadoresActivos(UUID oficioId) {
+        return consultarTrabajadores(oficioId);
+    }
+
+    @Override
+    public List<TrabajadorDTO> listarTrabajadoresActivos() {
+        return consultarTrabajadores(null);
+    }
+
+    /**
+     * Worker ya devuelve solo los trabajadores ACTIVOS; con {@code tradeId} filtra por oficio principal o
+     * secundario, y sin él entrega todos (para la búsqueda por nombre).
+     */
+    private List<TrabajadorDTO> consultarTrabajadores(UUID oficioId) {
         try {
-            // Worker ya devuelve solo los trabajadores ACTIVOS; tradeId filtra por oficio principal o secundario.
             List<TrabajadorWorkerDTO> trabajadores = restClient.get()
-                    .uri(uri -> uri.path(rutaTrabajadores).queryParam("tradeId", oficioId).build())
+                    .uri(uri -> oficioId == null
+                            ? uri.path(rutaTrabajadores).build()
+                            : uri.path(rutaTrabajadores).queryParam("tradeId", oficioId).build())
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<TrabajadorWorkerDTO>>() { });
             if (trabajadores == null || trabajadores.isEmpty()) {
