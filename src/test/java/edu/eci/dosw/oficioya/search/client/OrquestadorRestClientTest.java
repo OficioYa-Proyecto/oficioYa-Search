@@ -30,6 +30,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import edu.eci.dosw.oficioya.search.dto.CategoriaDTO;
 import edu.eci.dosw.oficioya.search.dto.OficioDTO;
 import edu.eci.dosw.oficioya.search.dto.ReputacionDTO;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
@@ -153,6 +154,19 @@ class OrquestadorRestClientTest {
                          {"id": "%s", "name": "Oficio retirado", "active": false}]
                         """.formatted(id(1), id(9)), MediaType.APPLICATION_JSON));
         assertThat(cliente.obtenerOficios()).containsExactly(new OficioDTO(id(1), "Plomería", null));
+    }
+
+    @Test
+    void entregaLaCategoriaDeCadaOficio() {
+        servidor.expect(requestTo(BASE + "/api/v1/trades"))
+                .andRespond(withSuccess("""
+                        [{"id": "%s", "name": "Plomero", "active": true,
+                          "category": {"id": "%s", "name": "Plomería y gas", "detail": "Tuberías"}},
+                         {"id": "%s", "name": "Todero", "active": true}]
+                        """.formatted(id(1), id(50), id(2)), MediaType.APPLICATION_JSON));
+        assertThat(cliente.obtenerOficios()).containsExactly(
+                new OficioDTO(id(1), "Plomero", null, new CategoriaDTO(id(50), "Plomería y gas")),
+                new OficioDTO(id(2), "Todero", null));
     }
 
     @Test
