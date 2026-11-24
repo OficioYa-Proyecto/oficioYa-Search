@@ -24,6 +24,7 @@ import edu.eci.dosw.oficioya.search.domain.TipoBusqueda;
 import edu.eci.dosw.oficioya.search.domain.filtro.FiltroBusqueda;
 import edu.eci.dosw.oficioya.search.dto.BusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.OficioDTO;
+import edu.eci.dosw.oficioya.search.dto.OficioOfrecidoDTO;
 import edu.eci.dosw.oficioya.search.dto.ReputacionDTO;
 import edu.eci.dosw.oficioya.search.dto.ResultadoBusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
@@ -103,7 +104,7 @@ public class BusquedaService {
                 trabajadores.stream().map(TrabajadorDTO::id).toList());
         FiltroBusqueda filtro = criterios.construirFiltro();
         List<ResultadoBusqueda> filtrados = trabajadores.stream()
-                .map(t -> aResultado(t, reputaciones.get(t.id())))
+                .map(t -> aResultado(t, criterios.oficioId(), reputaciones.get(t.id())))
                 .filter(filtro::cumple)
                 .toList();
         return ordenamiento.ordenar(filtrados);
@@ -113,14 +114,19 @@ public class BusquedaService {
         return orden == OrdenCalificacion.MAYOR_A_MENOR ? resultados : new OrdenamientoPorReputacion(orden).ordenar(resultados);
     }
 
-    private static ResultadoBusqueda aResultado(TrabajadorDTO t, ReputacionDTO reputacion) {
+    /**
+     * Arma el resultado con el oficio buscado: si el trabajador lo ofrece como secundario, la tarjeta muestra ese
+     * oficio y su tarifa (y el filtro de precio usa esa tarifa), no los del oficio principal.
+     */
+    private static ResultadoBusqueda aResultado(TrabajadorDTO t, UUID oficioBuscado, ReputacionDTO reputacion) {
+        OficioOfrecidoDTO oficio = t.oficioParaMostrar(oficioBuscado);
         double calificacion = reputacion == null || reputacion.reputacion() == null ? 0 : reputacion.reputacion();
         int resenas = reputacion == null || reputacion.totalResenas() == null ? 0 : reputacion.totalResenas();
         List<FranjaDisponibilidad> franjas = t.disponibilidad() == null ? List.of() : t.disponibilidad().stream()
                 .map(d -> new FranjaDisponibilidad(d.diaSemana(), d.horaInicio(), d.horaFin()))
                 .toList();
-        return new ResultadoBusqueda(t.id(), t.nombreCompleto(), t.fotoPerfilUrl(), t.oficioPrincipal(), t.zona(),
-                t.barrioIds() == null ? null : Set.copyOf(t.barrioIds()), t.tarifaAproximada(),
+        return new ResultadoBusqueda(t.id(), t.nombreCompleto(), t.fotoPerfilUrl(), oficio.nombre(), t.zona(),
+                t.barrioIds() == null ? null : Set.copyOf(t.barrioIds()), oficio.tarifa(),
                 calificacion, resenas, t.trabajosCompletados() == null ? 0 : t.trabajosCompletados(),
                 Boolean.TRUE.equals(t.disponibleAhora()), franjas);
     }
