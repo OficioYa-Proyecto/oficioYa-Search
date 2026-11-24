@@ -5,5 +5,7 @@ package edu.eci.dosw.oficioya.search.domain;
  */
 public enum TipoBusqueda {
     LENGUAJE_NATURAL,
-    OFICIO
+    OFICIO,
+    /** El texto coincidió con el nombre de uno o más trabajadores. */
+    NOMBRE
 }

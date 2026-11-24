@@ -22,6 +22,11 @@ public interface OrquestadorClient {
     List<TrabajadorDTO> buscarTrabajadoresActivos(UUID oficioId);
 
     /**
+     * Todos los trabajadores ACTIVO, con su nombre de Users. Se usa para buscar por nombre.
+     */
+    List<TrabajadorDTO> listarTrabajadoresActivos();
+
+    /**
      * Catálogo de oficios de Worker.
      */
     List<OficioDTO> obtenerOficios();
