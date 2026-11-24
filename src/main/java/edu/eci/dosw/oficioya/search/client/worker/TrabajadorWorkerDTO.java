@@ -4,13 +4,13 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.eci.dosw.oficioya.search.dto.DisponibilidadDTO;
+import edu.eci.dosw.oficioya.search.dto.OficioOfrecidoDTO;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
 
 /**
@@ -43,8 +43,11 @@ public record TrabajadorWorkerDTO(UUID id, UUID userId, String status, boolean a
      */
     public TrabajadorDTO aTrabajador(String nombreCompleto) {
         OficioWorkerDTO principal = primaryTrade == null ? null : primaryTrade.trade();
-        List<UUID> secundarios = secondaryTrades == null ? List.of() : secondaryTrades.stream()
-                .map(OficioDelTrabajadorDTO::trade).filter(Objects::nonNull).map(OficioWorkerDTO::id).toList();
+        List<OficioOfrecidoDTO> oficiosSecundarios = secondaryTrades == null ? List.of() : secondaryTrades.stream()
+                .filter(s -> s.trade() != null && s.trade().id() != null)
+                .map(s -> new OficioOfrecidoDTO(s.trade().id(), s.trade().name(), s.approxRate()))
+                .toList();
+        List<UUID> secundarios = oficiosSecundarios.stream().map(OficioOfrecidoDTO::id).toList();
         List<DisponibilidadDTO> disponibilidad = slots == null ? List.of() : slots.stream()
                 .filter(f -> f.dayOfWeek() != null && f.startTime() != null && f.endTime() != null)
                 .map(f -> new DisponibilidadDTO(f.dayOfWeek(), f.startTime(), f.endTime()))
@@ -52,6 +55,7 @@ public record TrabajadorWorkerDTO(UUID id, UUID userId, String status, boolean a
         return new TrabajadorDTO(id, nombreCompleto, null,
                 principal == null ? null : principal.id(), principal == null ? null : principal.name(),
                 secundarios, zoneIds == null ? List.of() : List.copyOf(zoneIds), null,
-                primaryTrade == null ? null : primaryTrade.approxRate(), availableNow, disponibilidad, null);
+                primaryTrade == null ? null : primaryTrade.approxRate(), availableNow, disponibilidad, null,
+                oficiosSecundarios);
     }
 }

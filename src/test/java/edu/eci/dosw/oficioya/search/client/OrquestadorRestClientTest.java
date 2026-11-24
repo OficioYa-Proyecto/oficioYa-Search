@@ -91,6 +91,8 @@ class OrquestadorRestClientTest {
         assertThat(trabajadores.get(0).oficioPrincipalId()).isEqualTo(id(1));
         assertThat(trabajadores.get(0).oficioPrincipal()).isEqualTo("Plomería");
         assertThat(trabajadores.get(0).oficiosSecundariosIds()).containsExactly(id(6));
+        assertThat(trabajadores.get(0).oficioParaMostrar(id(6)).nombre()).isEqualTo("Técnico");
+        assertThat(trabajadores.get(0).oficioParaMostrar(id(6)).tarifa()).isEqualByComparingTo("50000");
         assertThat(trabajadores.get(0).barrioIds()).containsExactlyInAnyOrder(10L, 11L);
         assertThat(trabajadores.get(0).tarifaAproximada()).isEqualByComparingTo("45000");
         assertThat(trabajadores.get(0).disponibleAhora()).isTrue();

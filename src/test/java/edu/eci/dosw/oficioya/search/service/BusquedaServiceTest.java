@@ -31,6 +31,7 @@ import edu.eci.dosw.oficioya.search.domain.TipoBusqueda;
 import edu.eci.dosw.oficioya.search.dto.BusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.DisponibilidadDTO;
 import edu.eci.dosw.oficioya.search.dto.OficioDTO;
+import edu.eci.dosw.oficioya.search.dto.OficioOfrecidoDTO;
 import edu.eci.dosw.oficioya.search.dto.ReputacionDTO;
 import edu.eci.dosw.oficioya.search.dto.ResultadoBusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
@@ -78,6 +79,33 @@ class BusquedaServiceTest {
                 .containsExactly(id(2), id(1), id(3));
         assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::posicion).containsExactly(1, 2, 3);
         assertThat(respuesta.total()).isEqualTo(3);
+    }
+
+    @Test
+    void siElOficioBuscadoEsSecundarioMuestraEseOficioYSuTarifa() {
+        UUID electricidad = id(9);
+        TrabajadorDTO electricistaQueTambienEsPlomero = new TrabajadorDTO(id(5), "Munar", null, electricidad,
+                "Electricista", List.of(PLOMERIA), List.of(10L), null, new BigDecimal("45000"), true, List.of(), 0,
+                List.of(new OficioOfrecidoDTO(PLOMERIA, "Plomero", new BigDecimal("70000"))));
+        when(orquestador.buscarTrabajadoresActivos(PLOMERIA)).thenReturn(List.of(electricistaQueTambienEsPlomero));
+
+        ResultadoBusquedaResponse resultado = servicio.buscarPorOficio("u1", CriteriosBusqueda.soloOficio(PLOMERIA))
+                .resultados().get(0);
+
+        assertThat(resultado.oficio()).isEqualTo("Plomero");
+        assertThat(resultado.tarifaAproximada()).isEqualByComparingTo("70000");
+    }
+
+    @Test
+    void elFiltroDePrecioUsaLaTarifaDelOficioBuscado() {
+        TrabajadorDTO trabajador = new TrabajadorDTO(id(5), "Munar", null, id(9), "Electricista", List.of(PLOMERIA),
+                List.of(10L), null, new BigDecimal("45000"), true, List.of(), 0,
+                List.of(new OficioOfrecidoDTO(PLOMERIA, "Plomero", new BigDecimal("70000"))));
+        when(orquestador.buscarTrabajadoresActivos(PLOMERIA)).thenReturn(List.of(trabajador));
+        CriteriosBusqueda hasta50mil = new CriteriosBusqueda(PLOMERIA, null, null, new BigDecimal("50000"),
+                null, null, false, null);
+
+        assertThat(servicio.buscarPorOficio("u1", hasta50mil).resultados()).isEmpty();
     }
 
     @Test
