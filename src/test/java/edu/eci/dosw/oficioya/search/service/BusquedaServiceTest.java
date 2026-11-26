@@ -246,6 +246,20 @@ class BusquedaServiceTest {
     }
 
     @Test
+    void laReputacionSeBuscaConLaCuentaDeUsersYNoConElIdDelPerfil() {
+        TrabajadorDTO conCuenta = new TrabajadorDTO(id(5), "Sergio Vega", null, PLOMERIA, "Plomero", List.of(),
+                List.of(10L), null, BigDecimal.ONE, true, List.of(), 0, List.of(), 100, id(405));
+        when(orquestador.listarTrabajadoresActivos()).thenReturn(List.of(conCuenta));
+        when(orquestador.obtenerReputaciones(List.of(id(405))))
+                .thenReturn(Map.of(id(405), new ReputacionDTO(id(405), 5.0, 1)));
+
+        BusquedaResponse respuesta = servicio.buscarTodos("u1", CriteriosBusqueda.soloOficio(null));
+
+        assertThat(respuesta.resultados().get(0).calificacionPromedio()).isEqualTo(5.0);
+        assertThat(respuesta.resultados().get(0).totalResenas()).isEqualTo(1);
+    }
+
+    @Test
     void consultaElCatalogoDeOficios() {
         assertThat(servicio.consultarOficios()).isEqualTo(CATALOGO);
     }

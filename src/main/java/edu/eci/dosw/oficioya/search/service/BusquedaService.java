@@ -134,13 +134,21 @@ public class BusquedaService {
     private List<ResultadoBusqueda> aResultados(List<TrabajadorDTO> trabajadores, UUID oficioBuscado,
                                                 CriteriosBusqueda criterios) {
         Map<UUID, ReputacionDTO> reputaciones = orquestadorClient.obtenerReputaciones(
-                trabajadores.stream().map(TrabajadorDTO::id).toList());
+                trabajadores.stream().map(BusquedaService::idEnReputation).distinct().toList());
         FiltroBusqueda filtro = criterios.construirFiltro();
         List<ResultadoBusqueda> filtrados = trabajadores.stream()
-                .map(t -> aResultado(t, oficioBuscado, reputaciones.get(t.id())))
+                .map(t -> aResultado(t, oficioBuscado, reputaciones.get(idEnReputation(t))))
                 .filter(filtro::cumple)
                 .toList();
         return ordenamiento.ordenar(filtrados);
+    }
+
+    /**
+     * Reputation guarda las reseñas con la cuenta de Users (el id que Service usa para el trabajador), no con el
+     * id del perfil de Worker. Si no se conoce la cuenta, se usa el id del perfil.
+     */
+    private static UUID idEnReputation(TrabajadorDTO t) {
+        return t.usuarioId() != null ? t.usuarioId() : t.id();
     }
 
     /**
