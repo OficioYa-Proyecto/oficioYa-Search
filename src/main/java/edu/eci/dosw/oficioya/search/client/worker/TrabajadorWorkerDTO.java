@@ -18,11 +18,12 @@ import edu.eci.dosw.oficioya.search.dto.TrabajadorDTO;
  * con {@link #aTrabajador()}.
  * Worker no entrega el nombre (es de Users): lo completa {@link #aTrabajador(String)} con lo que responde Users.
  * PENDIENTE con otros dominios: la foto de perfil (Imágenes) y los trabajos completados (Service) quedan vacíos.
+ * {@link #perfilCompleto(String)} mide qué tan lleno está el perfil de trabajo con lo que entrega Worker.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TrabajadorWorkerDTO(UUID id, UUID userId, String status, boolean availableNow, Set<Long> zoneIds,
                                   OficioDelTrabajadorDTO primaryTrade, List<OficioDelTrabajadorDTO> secondaryTrades,
-                                  List<FranjaWorkerDTO> slots) {
+                                  List<FranjaWorkerDTO> slots, List<Object> photos) {
 
     /** Oficio de un trabajador con su tarifa. */
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -56,6 +57,28 @@ public record TrabajadorWorkerDTO(UUID id, UUID userId, String status, boolean a
                 principal == null ? null : principal.id(), principal == null ? null : principal.name(),
                 secundarios, zoneIds == null ? List.of() : List.copyOf(zoneIds), null,
                 primaryTrade == null ? null : primaryTrade.approxRate(), availableNow, disponibilidad, null,
-                oficiosSecundarios);
+                oficiosSecundarios, perfilCompleto(nombreCompleto));
+    }
+
+    /**
+     * Porcentaje (0 a 100) del perfil de trabajo que está lleno. Cada parte vale lo mismo: oficio principal con
+     * tarifa, nombre en Users, barrios donde trabaja, horario, fotos de trabajos realizados y oficios secundarios.
+     */
+    public int perfilCompleto(String nombreCompleto) {
+        boolean[] partes = {
+            primaryTrade != null && primaryTrade.trade() != null && primaryTrade.approxRate() != null,
+            nombreCompleto != null && !nombreCompleto.isBlank(),
+            zoneIds != null && !zoneIds.isEmpty(),
+            slots != null && !slots.isEmpty(),
+            photos != null && !photos.isEmpty(),
+            secondaryTrades != null && !secondaryTrades.isEmpty(),
+        };
+        int llenas = 0;
+        for (boolean parte : partes) {
+            if (parte) {
+                llenas++;
+            }
+        }
+        return Math.round(llenas * 100f / partes.length);
     }
 }

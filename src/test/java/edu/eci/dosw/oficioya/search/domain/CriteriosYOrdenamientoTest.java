@@ -90,6 +90,21 @@ class CriteriosYOrdenamientoTest {
     }
 
     @Test
+    void porPerfilCompletoVanPrimeroLosPerfilesMasLlenosYLuegoLaMayorCalificacion() {
+        ResultadoBusqueda poco = new ResultadoBusqueda(id(1), "T1", null, "Plomería", null, null, BigDecimal.ONE, 5.0,
+                10, 10, false, null, 33);
+        ResultadoBusqueda lleno = new ResultadoBusqueda(id(2), "T2", null, "Plomería", null, null, BigDecimal.ONE, 3.0,
+                1, 1, false, null, 100);
+        ResultadoBusqueda llenoMejor = new ResultadoBusqueda(id(3), "T3", null, "Plomería", null, null, BigDecimal.ONE,
+                4.0, 1, 1, false, null, 100);
+
+        List<ResultadoBusqueda> ordenados = new OrdenamientoPorReputacion(OrdenCalificacion.PERFIL_COMPLETO)
+                .ordenar(List.of(poco, lleno, llenoMejor));
+
+        assertThat(ordenados).extracting(ResultadoBusqueda::getTrabajadorId).containsExactly(id(3), id(2), id(1));
+    }
+
+    @Test
     void sinOrdenSeUsaDeMayorAMenorYLaFranjaAgregaUnFiltro() {
         CriteriosBusqueda criterios = new CriteriosBusqueda(id(1), null, null, null, null, null, false, null,
                 FranjaHoraria.TARDE, null);

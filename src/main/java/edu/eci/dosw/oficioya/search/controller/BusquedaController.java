@@ -53,6 +53,17 @@ public class BusquedaController {
     }
 
     /**
+     * Todos los trabajadores activos (sin elegir oficio) con filtros opcionales combinados.
+     * Ejemplo: {@code GET /api/v1/search/trabajadores?orden=PERFIL_COMPLETO}
+     */
+    @Operation(summary = "Listar todos los trabajadores activos con filtros")
+    @GetMapping("/trabajadores")
+    public BusquedaResponse buscarTodos(@Valid @ModelAttribute CriteriosBusquedaRequest criterios,
+                                        @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt) {
+        return busquedaService.buscarTodos(usuario(jwt), criterios.aCriterios(null));
+    }
+
+    /**
      * Búsqueda por oficio con filtros opcionales combinados.
      * Ejemplo: {@code GET /api/v1/search/oficios/1/trabajadores?precioMinimo=30000&precioMaximo=60000&soloDisponibleAhora=true}
      */

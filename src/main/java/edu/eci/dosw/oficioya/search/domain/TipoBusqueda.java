@@ -7,5 +7,7 @@ public enum TipoBusqueda {
     LENGUAJE_NATURAL,
     OFICIO,
     /** El texto coincidió con el nombre de uno o más trabajadores. */
-    NOMBRE
+    NOMBRE,
+    /** Sin oficio ni texto: todos los trabajadores activos. */
+    TODOS
 }

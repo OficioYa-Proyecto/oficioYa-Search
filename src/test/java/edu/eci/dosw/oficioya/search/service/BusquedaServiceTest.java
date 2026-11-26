@@ -27,6 +27,7 @@ import edu.eci.dosw.oficioya.search.client.OrquestadorClient;
 import edu.eci.dosw.oficioya.search.domain.CriteriosBusqueda;
 import edu.eci.dosw.oficioya.search.domain.EstadoInterpretacion;
 import edu.eci.dosw.oficioya.search.domain.InterpretacionIA;
+import edu.eci.dosw.oficioya.search.domain.OrdenCalificacion;
 import edu.eci.dosw.oficioya.search.domain.TipoBusqueda;
 import edu.eci.dosw.oficioya.search.dto.BusquedaResponse;
 import edu.eci.dosw.oficioya.search.dto.DisponibilidadDTO;
@@ -222,6 +223,25 @@ class BusquedaServiceTest {
     @Test
     void sanearEliminaCaracteresDeControlYEspaciosRepetidos() {
         assertThat(BusquedaService.sanear("arreglar\u0000 la   llave\n")).isEqualTo("arreglar la llave");
+    }
+
+    @Test
+    void sinOficioNiTextoMuestraTodosLosTrabajadoresConElPerfilMasCompletoPrimero() {
+        TrabajadorDTO incompleto = new TrabajadorDTO(id(1), "Ana", null, PLOMERIA, "Plomero", List.of(), List.of(10L),
+                null, BigDecimal.ONE, true, List.of(), 0, List.of(), 50);
+        TrabajadorDTO completo = new TrabajadorDTO(id(2), "Luis", null, id(9), "Electricista", List.of(),
+                List.of(10L), null, BigDecimal.ONE, true, List.of(), 0, List.of(), 100);
+        TrabajadorDTO sinDato = trabajador(3, PLOMERIA, List.of(), 10_000, false, 0);
+        when(orquestador.listarTrabajadoresActivos()).thenReturn(List.of(incompleto, sinDato, completo));
+
+        BusquedaResponse respuesta = servicio.buscarTodos("u1", new CriteriosBusqueda(null, null, null, null, null,
+                null, false, null, null, OrdenCalificacion.PERFIL_COMPLETO));
+
+        assertThat(respuesta.tipo()).isEqualTo(TipoBusqueda.TODOS);
+        assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::trabajadorId)
+                .containsExactly(id(2), id(1), id(3));
+        assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::perfilCompleto)
+                .containsExactly(100, 50, 0);
     }
 
     @Test

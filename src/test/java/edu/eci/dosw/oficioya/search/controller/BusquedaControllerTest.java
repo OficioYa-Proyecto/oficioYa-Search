@@ -46,7 +46,7 @@ class BusquedaControllerTest {
 
     private static BusquedaResponse respuestaConUnResultado() {
         ResultadoBusquedaResponse r = new ResultadoBusquedaResponse(1, id(101), "Carlos", null, "Plomería", "Chapinero",
-                BigDecimal.valueOf(45000), 4.9, 128, 50, true);
+                BigDecimal.valueOf(45000), 4.9, 128, 50, true, 100);
         return new BusquedaResponse(TipoBusqueda.OFICIO, null, null, null, 1, List.of(r));
     }
 
@@ -63,6 +63,19 @@ class BusquedaControllerTest {
         mvc.perform(get("/api/v1/search/oficios").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("Plomería"));
+    }
+
+    // ---------- Todos los trabajadores ----------
+
+    @Test
+    void listarTodosSinOficioOrdenadosPorPerfilCompleto() throws Exception {
+        when(servicio.buscarTodos(eq("contratante-1"), any(CriteriosBusqueda.class)))
+                .thenReturn(respuestaConUnResultado());
+
+        mvc.perform(get("/api/v1/search/trabajadores").param("orden", "PERFIL_COMPLETO")
+                        .with(jwt().jwt(j -> j.subject("contratante-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultados[0].perfilCompleto").value(100));
     }
 
     // ---------- Búsqueda por oficio ----------

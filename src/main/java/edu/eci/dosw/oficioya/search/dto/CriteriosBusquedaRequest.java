@@ -28,7 +28,8 @@ import jakarta.validation.constraints.PositiveOrZero;
  * @param calificacionMinima  calificación promedio mínima (0 a 5)
  * @param franjaHoraria       franja de 6 horas: MADRUGADA (00:00-06:00), MANANA (06:00-12:00),
  *                            TARDE (12:00-18:00) o NOCHE (18:00-24:00)
- * @param orden               orden por calificación: MAYOR_A_MENOR (por defecto) o MENOR_A_MAYOR
+ * @param orden               MAYOR_A_MENOR (por defecto) o MENOR_A_MAYOR por calificación, o PERFIL_COMPLETO
+ *                            (perfiles de trabajo más llenos primero)
  */
 @SuppressWarnings("java:S107")
 public record CriteriosBusquedaRequest(

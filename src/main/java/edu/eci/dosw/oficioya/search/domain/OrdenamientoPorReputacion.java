@@ -7,6 +7,8 @@ import java.util.List;
  * Ordena los resultados EXCLUSIVAMENTE por reputación; ningún dato de pago participa (RF-7).
  * Criterio: calificación promedio (de mayor a menor por defecto, o de menor a mayor si se pide)
  * → trabajos completados desc → total de reseñas desc.
+ * Con {@link OrdenCalificacion#PERFIL_COMPLETO} va primero el porcentaje del perfil de trabajo (desc) y luego el
+ * mismo criterio por calificación de mayor a menor.
  */
 public class OrdenamientoPorReputacion implements Comparator<ResultadoBusqueda> {
 
@@ -25,7 +27,10 @@ public class OrdenamientoPorReputacion implements Comparator<ResultadoBusqueda> 
         if (orden != OrdenCalificacion.MENOR_A_MAYOR) {
             porCalificacion = porCalificacion.reversed();
         }
-        this.criterio = porCalificacion.thenComparing(DESEMPATE);
+        Comparator<ResultadoBusqueda> porReputacion = porCalificacion.thenComparing(DESEMPATE);
+        this.criterio = orden == OrdenCalificacion.PERFIL_COMPLETO
+                ? Comparator.comparingInt(ResultadoBusqueda::getPerfilCompleto).reversed().thenComparing(porReputacion)
+                : porReputacion;
     }
 
     @Override

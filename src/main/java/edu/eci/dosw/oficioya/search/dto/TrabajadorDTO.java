@@ -10,13 +10,24 @@ import java.util.List;
  * No incluye correo ni teléfono: si Worker los enviara, se ignoran.
  * {@code oficiosSecundarios} trae el nombre y la tarifa de cada oficio secundario, para mostrar en la tarjeta
  * el oficio que se buscó y no siempre el principal.
+ * {@code perfilCompleto} es el porcentaje (0 a 100) del perfil de trabajo lleno; {@code null} si no se conoce.
  */
 @SuppressWarnings("java:S107")
 public record TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,
                             String oficioPrincipal, List<UUID> oficiosSecundariosIds, List<Long> barrioIds,
                             String zona, BigDecimal tarifaAproximada, Boolean disponibleAhora,
                             List<DisponibilidadDTO> disponibilidad, Integer trabajosCompletados,
-                            List<OficioOfrecidoDTO> oficiosSecundarios) {
+                            List<OficioOfrecidoDTO> oficiosSecundarios, Integer perfilCompleto) {
+
+    /** Trabajador sin el porcentaje de perfil calculado. */
+    public TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,
+                         String oficioPrincipal, List<UUID> oficiosSecundariosIds, List<Long> barrioIds,
+                         String zona, BigDecimal tarifaAproximada, Boolean disponibleAhora,
+                         List<DisponibilidadDTO> disponibilidad, Integer trabajosCompletados,
+                         List<OficioOfrecidoDTO> oficiosSecundarios) {
+        this(id, nombreCompleto, fotoPerfilUrl, oficioPrincipalId, oficioPrincipal, oficiosSecundariosIds, barrioIds,
+                zona, tarifaAproximada, disponibleAhora, disponibilidad, trabajosCompletados, oficiosSecundarios, null);
+    }
 
     /** Trabajador sin el detalle de sus oficios secundarios: la tarjeta muestra siempre el principal. */
     public TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,
