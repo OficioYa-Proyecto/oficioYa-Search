@@ -51,6 +51,14 @@ public record TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl
     }
 
     /**
+     * Reputation guarda las reseñas con la cuenta de Users (el id que Service usa para el trabajador), no con el
+     * id del perfil de Worker. Si no se conoce la cuenta, se usa el id del perfil.
+     */
+    public UUID idEnReputation() {
+        return usuarioId != null ? usuarioId : id;
+    }
+
+    /**
      * Indica si el trabajador ofrece el oficio como principal o como secundario.
      */
     public boolean ofrece(UUID oficioId) {

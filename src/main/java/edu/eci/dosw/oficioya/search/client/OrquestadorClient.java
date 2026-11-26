@@ -27,6 +27,18 @@ public interface OrquestadorClient {
     List<TrabajadorDTO> listarTrabajadoresActivos();
 
     /**
+     * Trabajadores ACTIVO (de un oficio, o todos si {@code oficioId} es {@code null}) con su reputación.
+     * Esta versión consulta una cosa tras otra; la implementación REST pide Users y Reputation al mismo tiempo.
+     */
+    default TrabajadoresConReputacion buscarConReputacion(UUID oficioId) {
+        List<TrabajadorDTO> trabajadores = oficioId == null
+                ? listarTrabajadoresActivos()
+                : buscarTrabajadoresActivos(oficioId);
+        return new TrabajadoresConReputacion(trabajadores, obtenerReputaciones(
+                trabajadores.stream().map(TrabajadorDTO::idEnReputation).distinct().toList()));
+    }
+
+    /**
      * Catálogo de oficios de Worker.
      */
     List<OficioDTO> obtenerOficios();

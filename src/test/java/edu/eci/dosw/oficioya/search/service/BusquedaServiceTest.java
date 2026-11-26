@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +59,8 @@ class BusquedaServiceTest {
     @BeforeEach
     void preparar() {
         orquestador = mock(OrquestadorClient.class);
+        // El simulado usa la versión por defecto (Worker, luego Reputation); la paralela se prueba en el cliente REST.
+        doCallRealMethod().when(orquestador).buscarConReputacion(any());
         interpretador = mock(InterpretadorLenguajeNatural.class);
         servicio = new BusquedaService(orquestador, interpretador, 0.6, 2);
         when(orquestador.obtenerOficios()).thenReturn(CATALOGO);
