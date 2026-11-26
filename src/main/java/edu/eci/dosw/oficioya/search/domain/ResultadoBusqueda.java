@@ -25,6 +25,7 @@ public class ResultadoBusqueda {
     private final boolean disponibleAhora;
     private final List<FranjaDisponibilidad> disponibilidad;
     private final int perfilCompleto;
+    private UUID usuarioId;
     private int posicion;
 
     @SuppressWarnings("java:S107") // el resultado agrupa los datos que se muestran en el listado
@@ -109,6 +110,16 @@ public class ResultadoBusqueda {
 
     public List<FranjaDisponibilidad> getDisponibilidad() {
         return disponibilidad;
+    }
+
+    /** Cuenta del trabajador en Users, para que el front pida su foto de perfil. */
+    public ResultadoBusqueda conUsuario(UUID usuarioId) {
+        this.usuarioId = usuarioId;
+        return this;
+    }
+
+    public UUID getUsuarioId() {
+        return usuarioId;
     }
 
     public int getPerfilCompleto() {

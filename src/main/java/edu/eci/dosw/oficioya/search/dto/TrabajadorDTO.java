@@ -11,13 +11,25 @@ import java.util.List;
  * {@code oficiosSecundarios} trae el nombre y la tarifa de cada oficio secundario, para mostrar en la tarjeta
  * el oficio que se buscó y no siempre el principal.
  * {@code perfilCompleto} es el porcentaje (0 a 100) del perfil de trabajo lleno; {@code null} si no se conoce.
+ * {@code usuarioId} es la cuenta en Users: con ella el front pide la foto de perfil a Imágenes.
  */
 @SuppressWarnings("java:S107")
 public record TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,
                             String oficioPrincipal, List<UUID> oficiosSecundariosIds, List<Long> barrioIds,
                             String zona, BigDecimal tarifaAproximada, Boolean disponibleAhora,
                             List<DisponibilidadDTO> disponibilidad, Integer trabajosCompletados,
-                            List<OficioOfrecidoDTO> oficiosSecundarios, Integer perfilCompleto) {
+                            List<OficioOfrecidoDTO> oficiosSecundarios, Integer perfilCompleto, UUID usuarioId) {
+
+    /** Trabajador sin la cuenta de Users. */
+    public TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,
+                         String oficioPrincipal, List<UUID> oficiosSecundariosIds, List<Long> barrioIds,
+                         String zona, BigDecimal tarifaAproximada, Boolean disponibleAhora,
+                         List<DisponibilidadDTO> disponibilidad, Integer trabajosCompletados,
+                         List<OficioOfrecidoDTO> oficiosSecundarios, Integer perfilCompleto) {
+        this(id, nombreCompleto, fotoPerfilUrl, oficioPrincipalId, oficioPrincipal, oficiosSecundariosIds, barrioIds,
+                zona, tarifaAproximada, disponibleAhora, disponibilidad, trabajosCompletados, oficiosSecundarios,
+                perfilCompleto, null);
+    }
 
     /** Trabajador sin el porcentaje de perfil calculado. */
     public TrabajadorDTO(UUID id, String nombreCompleto, String fotoPerfilUrl, UUID oficioPrincipalId,

@@ -228,7 +228,7 @@ class BusquedaServiceTest {
     @Test
     void sinOficioNiTextoMuestraTodosLosTrabajadoresConElPerfilMasCompletoPrimero() {
         TrabajadorDTO incompleto = new TrabajadorDTO(id(1), "Ana", null, PLOMERIA, "Plomero", List.of(), List.of(10L),
-                null, BigDecimal.ONE, true, List.of(), 0, List.of(), 50);
+                null, BigDecimal.ONE, true, List.of(), 0, List.of(), 50, id(301));
         TrabajadorDTO completo = new TrabajadorDTO(id(2), "Luis", null, id(9), "Electricista", List.of(),
                 List.of(10L), null, BigDecimal.ONE, true, List.of(), 0, List.of(), 100);
         TrabajadorDTO sinDato = trabajador(3, PLOMERIA, List.of(), 10_000, false, 0);
@@ -242,6 +242,7 @@ class BusquedaServiceTest {
                 .containsExactly(id(2), id(1), id(3));
         assertThat(respuesta.resultados()).extracting(ResultadoBusquedaResponse::perfilCompleto)
                 .containsExactly(100, 50, 0);
+        assertThat(respuesta.resultados().get(1).usuarioId()).isEqualTo(id(301));
     }
 
     @Test

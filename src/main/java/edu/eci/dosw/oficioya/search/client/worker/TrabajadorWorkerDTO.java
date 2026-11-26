@@ -57,7 +57,7 @@ public record TrabajadorWorkerDTO(UUID id, UUID userId, String status, boolean a
                 principal == null ? null : principal.id(), principal == null ? null : principal.name(),
                 secundarios, zoneIds == null ? List.of() : List.copyOf(zoneIds), null,
                 primaryTrade == null ? null : primaryTrade.approxRate(), availableNow, disponibilidad, null,
-                oficiosSecundarios, perfilCompleto(nombreCompleto));
+                oficiosSecundarios, perfilCompleto(nombreCompleto), userId);
     }
 
     /**

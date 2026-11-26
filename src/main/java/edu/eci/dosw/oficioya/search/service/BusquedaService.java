@@ -194,7 +194,7 @@ public class BusquedaService {
                 t.barrioIds() == null ? null : Set.copyOf(t.barrioIds()), oficio.tarifa(),
                 calificacion, resenas, t.trabajosCompletados() == null ? 0 : t.trabajosCompletados(),
                 Boolean.TRUE.equals(t.disponibleAhora()), franjas,
-                t.perfilCompleto() == null ? 0 : t.perfilCompleto());
+                t.perfilCompleto() == null ? 0 : t.perfilCompleto()).conUsuario(t.usuarioId());
     }
 
     private static List<ResultadoBusquedaResponse> aRespuesta(List<ResultadoBusqueda> resultados) {
