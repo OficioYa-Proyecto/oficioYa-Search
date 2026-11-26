@@ -98,6 +98,8 @@ class OrquestadorRestClientTest {
         assertThat(trabajadores.get(0).disponibleAhora()).isTrue();
         assertThat(trabajadores.get(0).disponibilidad()).hasSize(1);
         assertThat(trabajadores.get(0).disponibilidad().get(0).diaSemana()).isEqualTo(DayOfWeek.MONDAY);
+        // Oficio, nombre, barrios, horario y oficios secundarios: 5 de 6 partes (le faltan fotos de trabajos).
+        assertThat(trabajadores.get(0).perfilCompleto()).isEqualTo(83);
         assertThat(trabajadores.get(0).disponibilidad().get(0).horaInicio()).isEqualTo(LocalTime.of(8, 0));
         servidor.verify();
     }

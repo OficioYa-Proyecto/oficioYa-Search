@@ -76,6 +76,18 @@ public class BusquedaService {
     }
 
     /**
+     * Todos los trabajadores activos, sin oficio ni texto, con los filtros combinados. Es lo que se muestra al
+     * entrar a buscar sin haber elegido nada.
+     */
+    public BusquedaResponse buscarTodos(String usuario, CriteriosBusqueda criterios) {
+        long inicio = System.currentTimeMillis();
+        List<ResultadoBusqueda> resultados = enOrden(
+                aResultados(orquestadorClient.listarTrabajadoresActivos(), null, criterios), criterios.orden());
+        registrarLog(usuario, TipoBusqueda.TODOS, null, resultados.size(), inicio);
+        return new BusquedaResponse(TipoBusqueda.TODOS, null, null, null, resultados.size(), aRespuesta(resultados));
+    }
+
+    /**
      * Búsqueda en lenguaje natural (RF-1, RF-2). Primero se revisa si el texto es el nombre de un trabajador;
      * si no lo es, la IA identifica el oficio y se sugieren los trabajadores
      * con mayor reputación en ese oficio. Si no se identifica el oficio, se pide más detalle.
@@ -181,7 +193,8 @@ public class BusquedaService {
         return new ResultadoBusqueda(t.id(), t.nombreCompleto(), t.fotoPerfilUrl(), oficio.nombre(), t.zona(),
                 t.barrioIds() == null ? null : Set.copyOf(t.barrioIds()), oficio.tarifa(),
                 calificacion, resenas, t.trabajosCompletados() == null ? 0 : t.trabajosCompletados(),
-                Boolean.TRUE.equals(t.disponibleAhora()), franjas);
+                Boolean.TRUE.equals(t.disponibleAhora()), franjas,
+                t.perfilCompleto() == null ? 0 : t.perfilCompleto());
     }
 
     private static List<ResultadoBusquedaResponse> aRespuesta(List<ResultadoBusqueda> resultados) {

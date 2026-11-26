@@ -24,6 +24,7 @@ public class ResultadoBusqueda {
     private final int trabajosCompletados;
     private final boolean disponibleAhora;
     private final List<FranjaDisponibilidad> disponibilidad;
+    private final int perfilCompleto;
     private int posicion;
 
     @SuppressWarnings("java:S107") // el resultado agrupa los datos que se muestran en el listado
@@ -31,6 +32,18 @@ public class ResultadoBusqueda {
                              Set<Long> barrioIds, BigDecimal tarifaAproximada, double calificacionPromedio,
                              int totalResenas, int trabajosCompletados, boolean disponibleAhora,
                              List<FranjaDisponibilidad> disponibilidad) {
+        this(trabajadorId, nombreCompleto, fotoPerfilUrl, oficio, zona, barrioIds, tarifaAproximada,
+                calificacionPromedio, totalResenas, trabajosCompletados, disponibleAhora, disponibilidad, 0);
+    }
+
+    /**
+     * @param perfilCompleto porcentaje (0 a 100) del perfil de trabajo que el trabajador tiene lleno
+     */
+    @SuppressWarnings("java:S107")
+    public ResultadoBusqueda(UUID trabajadorId, String nombreCompleto, String fotoPerfilUrl, String oficio, String zona,
+                             Set<Long> barrioIds, BigDecimal tarifaAproximada, double calificacionPromedio,
+                             int totalResenas, int trabajosCompletados, boolean disponibleAhora,
+                             List<FranjaDisponibilidad> disponibilidad, int perfilCompleto) {
         this.trabajadorId = trabajadorId;
         this.nombreCompleto = nombreCompleto;
         this.fotoPerfilUrl = fotoPerfilUrl;
@@ -43,6 +56,7 @@ public class ResultadoBusqueda {
         this.trabajosCompletados = trabajosCompletados;
         this.disponibleAhora = disponibleAhora;
         this.disponibilidad = disponibilidad == null ? List.of() : List.copyOf(disponibilidad);
+        this.perfilCompleto = perfilCompleto;
     }
 
     public void asignarPosicion(int posicion) {
@@ -95,6 +109,10 @@ public class ResultadoBusqueda {
 
     public List<FranjaDisponibilidad> getDisponibilidad() {
         return disponibilidad;
+    }
+
+    public int getPerfilCompleto() {
+        return perfilCompleto;
     }
 
     public int getPosicion() {
