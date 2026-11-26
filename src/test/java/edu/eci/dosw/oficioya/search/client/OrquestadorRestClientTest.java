@@ -57,6 +57,43 @@ class OrquestadorRestClientTest {
     }
 
     @Test
+    void buscarConReputacionPideUsersYReputationConLaCuentaYReenviaElJwtEnAmbas() {
+        RestClient.Builder builder = RestClient.builder();
+        // Users y Reputation van en paralelo: el orden en que llegan no es fijo.
+        MockRestServiceServer paralelo = MockRestServiceServer.bindTo(builder).ignoreExpectOrder(true).build();
+        OrquestadorRestClient clienteParalelo = new OrquestadorRestClient(builder, BASE, "/api/v1/workers",
+                "/api/v1/trades", "/api/v1/reputation/reputaciones", "/api/ia/interpretaciones", "/api/v1/users");
+        Jwt jwt = Jwt.withTokenValue("token-del-usuario").header("alg", "HS256").subject("contratante-1").build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+        paralelo.expect(requestTo(BASE + "/api/v1/workers"))
+                .andExpect(header("Authorization", "Bearer token-del-usuario"))
+                .andRespond(withSuccess("""
+                        [{"id": "%s", "userId": "%s", "status": "ACTIVE", "availableNow": true, "zoneIds": [10],
+                          "primaryTrade": {"id": "%s", "approxRate": 45000, "rateUnit": "PER_HOUR",
+                            "trade": {"id": "%s", "name": "Plomería", "active": true}},
+                          "secondaryTrades": [], "slots": [], "photos": []}]
+                        """.formatted(id(101), id(201), id(501), id(1)), MediaType.APPLICATION_JSON));
+        paralelo.expect(requestTo(BASE + "/api/v1/users?ids=" + id(201)))
+                .andExpect(header("Authorization", "Bearer token-del-usuario"))
+                .andRespond(withSuccess("""
+                        [{"id": "%s", "name": "Sergio Vega"}]
+                        """.formatted(id(201)), MediaType.APPLICATION_JSON));
+        paralelo.expect(requestTo(BASE + "/api/v1/reputation/reputaciones?trabajadorIds=" + id(201)))
+                .andExpect(header("Authorization", "Bearer token-del-usuario"))
+                .andRespond(withSuccess("""
+                        [{"trabajadorId": "%s", "reputacion": 5.0, "totalResenas": 1}]
+                        """.formatted(id(201)), MediaType.APPLICATION_JSON));
+
+        TrabajadoresConReputacion encontrados = clienteParalelo.buscarConReputacion(null);
+
+        paralelo.verify();
+        assertThat(encontrados.trabajadores()).hasSize(1);
+        TrabajadorDTO sergio = encontrados.trabajadores().get(0);
+        assertThat(sergio.nombreCompleto()).isEqualTo("Sergio Vega");
+        assertThat(encontrados.reputacionDe(sergio).totalResenas()).isEqualTo(1);
+    }
+
+    @Test
     void consultaTrabajadoresActivosPorElOrquestadorYReenviaElJwt() {
         Jwt jwt = Jwt.withTokenValue("token-del-usuario").header("alg", "HS256").subject("contratante-1").build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));

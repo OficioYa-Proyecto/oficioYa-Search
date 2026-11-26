@@ -7,6 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -16,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.security.concurrent.DelegatingSecurityContextExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -50,6 +55,11 @@ public class OrquestadorRestClient implements OrquestadorClient {
     private final String rutaReputaciones;
     private final String rutaInterpretacionIA;
     private final String rutaUsuarios;
+    /**
+     * Hilos virtuales para pedir Users y Reputation al mismo tiempo. Cada tarea lleva el contexto de seguridad de
+     * quien la lanza, para que {@link PropagacionTokenInterceptor} reenvíe el JWT del usuario.
+     */
+    private final Executor paralelo = new DelegatingSecurityContextExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
     @SuppressWarnings("java:S107")
     public OrquestadorRestClient(RestClient.Builder builder,
@@ -78,10 +88,50 @@ public class OrquestadorRestClient implements OrquestadorClient {
     }
 
     /**
+     * Pide a Worker los trabajadores y, apenas responde, consulta al mismo tiempo los nombres (Users) y la
+     * reputación (Reputation): ambas solo necesitan los ids que entrega Worker.
+     */
+    @Override
+    public TrabajadoresConReputacion buscarConReputacion(UUID oficioId) {
+        List<TrabajadorWorkerDTO> trabajadores = trabajadoresDeWorker(oficioId);
+        if (trabajadores.isEmpty()) {
+            return new TrabajadoresConReputacion(List.of(), Map.of());
+        }
+        CompletableFuture<Map<UUID, String>> nombres = CompletableFuture.supplyAsync(
+                () -> nombresDeUsuarios(idsDeCuentas(trabajadores)), paralelo);
+        CompletableFuture<Map<UUID, ReputacionDTO>> reputaciones = CompletableFuture.supplyAsync(
+                () -> obtenerReputaciones(trabajadores.stream()
+                        .map(t -> t.userId() != null ? t.userId() : t.id()).distinct().toList()), paralelo);
+        try {
+            Map<UUID, String> porCuenta = nombres.join();
+            List<TrabajadorDTO> conNombre = trabajadores.stream()
+                    .map(trabajador -> trabajador.aTrabajador(porCuenta.get(trabajador.userId())))
+                    .toList();
+            return new TrabajadoresConReputacion(conNombre, reputaciones.join());
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof IntegracionException integracion) {
+                throw integracion;
+            }
+            throw e;
+        }
+    }
+
+    /**
      * Worker ya devuelve solo los trabajadores ACTIVOS; con {@code tradeId} filtra por oficio principal o
      * secundario, y sin él entrega todos (para la búsqueda por nombre).
      */
     private List<TrabajadorDTO> consultarTrabajadores(UUID oficioId) {
+        List<TrabajadorWorkerDTO> trabajadores = trabajadoresDeWorker(oficioId);
+        if (trabajadores.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, String> nombres = nombresDeUsuarios(idsDeCuentas(trabajadores));
+        return trabajadores.stream()
+                .map(trabajador -> trabajador.aTrabajador(nombres.get(trabajador.userId())))
+                .toList();
+    }
+
+    private List<TrabajadorWorkerDTO> trabajadoresDeWorker(UUID oficioId) {
         try {
             List<TrabajadorWorkerDTO> trabajadores = restClient.get()
                     .uri(uri -> oficioId == null
@@ -89,17 +139,14 @@ public class OrquestadorRestClient implements OrquestadorClient {
                             : uri.path(rutaTrabajadores).queryParam("tradeId", oficioId).build())
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<TrabajadorWorkerDTO>>() { });
-            if (trabajadores == null || trabajadores.isEmpty()) {
-                return List.of();
-            }
-            Map<UUID, String> nombres = nombresDeUsuarios(trabajadores.stream()
-                    .map(TrabajadorWorkerDTO::userId).filter(Objects::nonNull).distinct().toList());
-            return trabajadores.stream()
-                    .map(trabajador -> trabajador.aTrabajador(nombres.get(trabajador.userId())))
-                    .toList();
+            return trabajadores == null ? List.of() : trabajadores;
         } catch (RestClientException e) {
             throw new IntegracionException("No fue posible consultar los trabajadores en Worker", e);
         }
+    }
+
+    private static List<UUID> idsDeCuentas(List<TrabajadorWorkerDTO> trabajadores) {
+        return trabajadores.stream().map(TrabajadorWorkerDTO::userId).filter(Objects::nonNull).distinct().toList();
     }
 
     /**

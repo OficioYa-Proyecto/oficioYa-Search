@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import edu.eci.dosw.oficioya.search.client.OrquestadorClient;
+import edu.eci.dosw.oficioya.search.client.TrabajadoresConReputacion;
 import edu.eci.dosw.oficioya.search.domain.Busqueda;
 import edu.eci.dosw.oficioya.search.domain.CriteriosBusqueda;
 import edu.eci.dosw.oficioya.search.domain.FranjaDisponibilidad;
@@ -82,7 +83,7 @@ public class BusquedaService {
     public BusquedaResponse buscarTodos(String usuario, CriteriosBusqueda criterios) {
         long inicio = System.currentTimeMillis();
         List<ResultadoBusqueda> resultados = enOrden(
-                aResultados(orquestadorClient.listarTrabajadoresActivos(), null, criterios), criterios.orden());
+                aResultados(orquestadorClient.buscarConReputacion(null), null, criterios), criterios.orden());
         registrarLog(usuario, TipoBusqueda.TODOS, null, resultados.size(), inicio);
         return new BusquedaResponse(TipoBusqueda.TODOS, null, null, null, resultados.size(), aRespuesta(resultados));
     }
@@ -122,10 +123,12 @@ public class BusquedaService {
         if (criterios.oficioId() == null) {
             throw new SolicitudInvalidaException("Debes indicar el oficio que buscas.");
         }
-        List<TrabajadorDTO> trabajadores = orquestadorClient.buscarTrabajadoresActivos(criterios.oficioId()).stream()
+        TrabajadoresConReputacion encontrados = orquestadorClient.buscarConReputacion(criterios.oficioId());
+        List<TrabajadorDTO> queOfrecen = encontrados.trabajadores().stream()
                 .filter(t -> t.ofrece(criterios.oficioId()))
                 .toList();
-        return aResultados(trabajadores, criterios.oficioId(), criterios);
+        return aResultados(new TrabajadoresConReputacion(queOfrecen, encontrados.reputaciones()),
+                criterios.oficioId(), criterios);
     }
 
     /**
@@ -134,21 +137,18 @@ public class BusquedaService {
     private List<ResultadoBusqueda> aResultados(List<TrabajadorDTO> trabajadores, UUID oficioBuscado,
                                                 CriteriosBusqueda criterios) {
         Map<UUID, ReputacionDTO> reputaciones = orquestadorClient.obtenerReputaciones(
-                trabajadores.stream().map(BusquedaService::idEnReputation).distinct().toList());
+                trabajadores.stream().map(TrabajadorDTO::idEnReputation).distinct().toList());
+        return aResultados(new TrabajadoresConReputacion(trabajadores, reputaciones), oficioBuscado, criterios);
+    }
+
+    private List<ResultadoBusqueda> aResultados(TrabajadoresConReputacion encontrados, UUID oficioBuscado,
+                                                CriteriosBusqueda criterios) {
         FiltroBusqueda filtro = criterios.construirFiltro();
-        List<ResultadoBusqueda> filtrados = trabajadores.stream()
-                .map(t -> aResultado(t, oficioBuscado, reputaciones.get(idEnReputation(t))))
+        List<ResultadoBusqueda> filtrados = encontrados.trabajadores().stream()
+                .map(t -> aResultado(t, oficioBuscado, encontrados.reputacionDe(t)))
                 .filter(filtro::cumple)
                 .toList();
         return ordenamiento.ordenar(filtrados);
-    }
-
-    /**
-     * Reputation guarda las reseñas con la cuenta de Users (el id que Service usa para el trabajador), no con el
-     * id del perfil de Worker. Si no se conoce la cuenta, se usa el id del perfil.
-     */
-    private static UUID idEnReputation(TrabajadorDTO t) {
-        return t.usuarioId() != null ? t.usuarioId() : t.id();
     }
 
     /**
