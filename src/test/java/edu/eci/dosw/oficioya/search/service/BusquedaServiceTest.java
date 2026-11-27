@@ -87,6 +87,24 @@ class BusquedaServiceTest {
     }
 
     @Test
+    void losTrabajosCompletadosVienenDeReputation() {
+        when(orquestador.obtenerReputaciones(anyList())).thenReturn(Map.of(
+                id(1), new ReputacionDTO(id(1), 4.5, 10, 7),
+                id(3), new ReputacionDTO(id(3), 0.0, 0, 2)));
+
+        List<ResultadoBusquedaResponse> resultados = servicio.buscarPorOficio("u1",
+                CriteriosBusqueda.soloOficio(PLOMERIA)).resultados();
+
+        // 1 y 3 los cuenta Reputation; el 2 no tiene ese dato y conserva el de Worker (50).
+        assertThat(resultados).filteredOn(r -> r.trabajadorId().equals(id(1)))
+                .extracting(ResultadoBusquedaResponse::trabajosCompletados).containsExactly(7);
+        assertThat(resultados).filteredOn(r -> r.trabajadorId().equals(id(3)))
+                .extracting(ResultadoBusquedaResponse::trabajosCompletados).containsExactly(2);
+        assertThat(resultados).filteredOn(r -> r.trabajadorId().equals(id(2)))
+                .extracting(ResultadoBusquedaResponse::trabajosCompletados).containsExactly(50);
+    }
+
+    @Test
     void siElOficioBuscadoEsSecundarioMuestraEseOficioYSuTarifa() {
         UUID electricidad = id(9);
         TrabajadorDTO electricistaQueTambienEsPlomero = new TrabajadorDTO(id(5), "Munar", null, electricidad,
