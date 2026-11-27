@@ -55,6 +55,34 @@ class InterpretadoresTest {
         assertThat(r.estado()).isEqualTo(EstadoInterpretacion.REQUIERE_MAS_DETALLE);
     }
 
+    private static final List<OficioDTO> CATALOGO_MASCOTAS = List.of(
+            new OficioDTO(id(10), "Paseador de perros", null, null),
+            new OficioDTO(id(11), "Peluquería canina", null, null),
+            new OficioDTO(id(12), "Cuidador a domicilio", null, null),
+            new OficioDTO(id(13), "Adiestrador", null, null));
+
+    @Test
+    void simuladoIdentificaCualquierOficioDelCatalogoPorSuNombre() {
+        InterpretacionIA r = simulado.interpretar("Peluquería canina", CATALOGO_MASCOTAS);
+        assertThat(r.oficioId()).isEqualTo(id(11));
+        assertThat(r.nivelConfianza()).isEqualTo(InterpretadorSimulado.CONFIANZA_NOMBRE);
+    }
+
+    @Test
+    void simuladoAceptaPluralGeneroYParteDelNombre() {
+        assertThat(simulado.interpretar("necesito un adiestrador", CATALOGO_MASCOTAS).oficioId()).isEqualTo(id(13));
+        assertThat(simulado.interpretar("peluquero canino", CATALOGO_MASCOTAS).oficioId()).isEqualTo(id(11));
+        InterpretacionIA parcial = simulado.interpretar("alguien para mi perro", CATALOGO_MASCOTAS);
+        assertThat(parcial.oficioId()).isEqualTo(id(10));
+        assertThat(parcial.nivelConfianza()).isEqualTo(InterpretadorSimulado.CONFIANZA_NOMBRE_PARCIAL);
+    }
+
+    @Test
+    void simuladoNoConfundeElectricidadConElectrodomesticos() {
+        assertThat(InterpretadorSimulado.mismaPalabra("electricidad", "electrodomesticos")).isFalse();
+        assertThat(simulado.interpretar("electricidad", CATALOGO).oficioId()).isEqualTo(id(2));
+    }
+
     @Test
     void normalizarQuitaTildesYMayusculas() {
         assertThat(InterpretadorSimulado.normalizar("Técnico ÉLÉCTRICO")).isEqualTo("tecnico electrico");
