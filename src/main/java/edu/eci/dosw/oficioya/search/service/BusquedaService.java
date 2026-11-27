@@ -195,12 +195,15 @@ public class BusquedaService {
         OficioOfrecidoDTO oficio = t.oficioParaMostrar(oficioBuscado);
         double calificacion = reputacion == null || reputacion.reputacion() == null ? 0 : reputacion.reputacion();
         int resenas = reputacion == null || reputacion.totalResenas() == null ? 0 : reputacion.totalResenas();
+        int trabajos = reputacion == null || reputacion.trabajosCompletados() == null
+                ? (t.trabajosCompletados() == null ? 0 : t.trabajosCompletados())
+                : reputacion.trabajosCompletados();
         List<FranjaDisponibilidad> franjas = t.disponibilidad() == null ? List.of() : t.disponibilidad().stream()
                 .map(d -> new FranjaDisponibilidad(d.diaSemana(), d.horaInicio(), d.horaFin()))
                 .toList();
         return new ResultadoBusqueda(t.id(), t.nombreCompleto(), t.fotoPerfilUrl(), oficio.nombre(), t.zona(),
                 t.barrioIds() == null ? null : Set.copyOf(t.barrioIds()), oficio.tarifa(),
-                calificacion, resenas, t.trabajosCompletados() == null ? 0 : t.trabajosCompletados(),
+                calificacion, resenas, trabajos,
                 Boolean.TRUE.equals(t.disponibleAhora()), franjas,
                 t.perfilCompleto() == null ? 0 : t.perfilCompleto()).conUsuario(t.usuarioId());
     }
