@@ -16,8 +16,8 @@ public record InterpretacionIA(String oficioIdentificado, UUID oficioId, double 
                                EstadoInterpretacion estado, String mensajeAclaracion) {
 
     public static final String MENSAJE_MAS_DETALLE =
-            "No logramos identificar el oficio que necesitas. Cuéntanos con más detalle qué problema tienes "
-                    + "(por ejemplo: \"tengo una fuga en el lavamanos\").";
+            "No encontramos profesionales que coincidan con tu búsqueda. Prueba con el nombre de un oficio "
+                    + "o de un trabajador, o elige una categoría.";
 
     public static InterpretacionIA identificado(UUID oficioId, String oficio, double nivelConfianza) {
         return new InterpretacionIA(oficio, oficioId, nivelConfianza, EstadoInterpretacion.OFICIO_IDENTIFICADO, null);
